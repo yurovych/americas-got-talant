@@ -2,12 +2,9 @@
 
 import { useState } from 'react';
 import ProtectiveScreen from '@/components/ProtectiveScreen';
-import {
-  CONTAINS_NUMBER_REGEXP,
-  MIN_MESSAGE_LENGTH,
-  validationStatusObj,
-} from '@/constants';
+import { validationStatusObj } from '@/constants';
 import { MESSAGE_STATUS } from '@/enums/messageStatus';
+import { checkValidity } from '@/helpers/getIsNameValid';
 
 interface ImprovedByHumanProps {
   isActive: boolean;
@@ -26,32 +23,12 @@ const ImprovedByHuman: React.FC<ImprovedByHumanProps> = ({ isActive }) => {
       ? './icons/error_icon.svg'
       : './icons/person_icon.svg';
 
-  const checkValidity = (name: string) => {
-    if (!name) {
-      setValidationStatus(validationStatusObj.notProvided);
-      return false;
-    }
-
-    if (CONTAINS_NUMBER_REGEXP.test(name)) {
-      setValidationStatus(validationStatusObj.includesNumbers);
-      return false;
-    }
-
-    if (name.length < MIN_MESSAGE_LENGTH) {
-      setValidationStatus(validationStatusObj.tooShort);
-      return false;
-    } else {
-      setValidationStatus(validationStatusObj.valid);
-      return true;
-    }
-  };
-
   const handleVote = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const trimmedName = lastName.trim();
 
-    if (!checkValidity(trimmedName)) return;
+    if (!checkValidity(trimmedName, setValidationStatus)) return;
 
     setStatus(MESSAGE_STATUS.LOADING);
     setMessage('');
