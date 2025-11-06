@@ -2,40 +2,46 @@
 
 import { useState } from 'react';
 import ProtectiveScreen from '@/components/ProtectiveScreen';
+import {
+  CONTAINS_NUMBER_REGEXP,
+  MIN_MESSAGE_LENGTH,
+  validationStatusObj,
+} from '@/constants';
+import { MESSAGE_STATUS } from '@/enums/messageStatus';
 
-enum VALIDATION_STATUS {
-  VALID = 'valid',
-  NOT_PROVIDED = "Please enter a contestant's last name.",
-  TOO_SHORT = 'Name is too short.',
-  INCLUDES_NUMBERS = 'Name cannot include numbers.',
+interface ImprovedByHumanProps {
+  isActive: boolean;
 }
 
-const ImprovedByHuman = ({ isActive }: { isActive: boolean }) => {
+const ImprovedByHuman: React.FC<ImprovedByHumanProps> = ({ isActive }) => {
   const [lastName, setLastName] = useState('');
-  const [validationStatus, setValidationStatus] = useState(
-    VALIDATION_STATUS.VALID
-  );
-  const [status, setStatus] = useState<
-    'idle' | 'loading' | 'success' | 'error'
-  >('idle');
+  const [status, setStatus] = useState<MESSAGE_STATUS>(MESSAGE_STATUS.IDLE);
   const [message, setMessage] = useState('');
+  const [validationStatus, setValidationStatus] = useState(
+    validationStatusObj.valid
+  );
+
+  const iconLink =
+    validationStatus !== validationStatusObj.valid
+      ? './icons/error_icon.svg'
+      : './icons/person_icon.svg';
 
   const checkValidity = (name: string) => {
     if (!name) {
-      setValidationStatus(VALIDATION_STATUS.NOT_PROVIDED);
+      setValidationStatus(validationStatusObj.notProvided);
       return false;
     }
 
-    if (/\d/.test(name)) {
-      setValidationStatus(VALIDATION_STATUS.INCLUDES_NUMBERS);
+    if (CONTAINS_NUMBER_REGEXP.test(name)) {
+      setValidationStatus(validationStatusObj.includesNumbers);
       return false;
     }
 
-    if (name.length < 3) {
-      setValidationStatus(VALIDATION_STATUS.TOO_SHORT);
+    if (name.length < MIN_MESSAGE_LENGTH) {
+      setValidationStatus(validationStatusObj.tooShort);
       return false;
     } else {
-      setValidationStatus(VALIDATION_STATUS.VALID);
+      setValidationStatus(validationStatusObj.valid);
       return true;
     }
   };
@@ -47,18 +53,18 @@ const ImprovedByHuman = ({ isActive }: { isActive: boolean }) => {
 
     if (!checkValidity(trimmedName)) return;
 
-    setStatus('loading');
+    setStatus(MESSAGE_STATUS.LOADING);
     setMessage('');
 
     setTimeout(() => {
       const success = Math.random() > 0.3;
 
       if (success) {
-        setStatus('success');
+        setStatus(MESSAGE_STATUS.SUCCESS);
         setMessage(`Vote for "${trimmedName}" submitted successfully!`);
         setLastName('');
       } else {
-        setStatus('error');
+        setStatus(MESSAGE_STATUS.ERROR);
         setMessage(
           `Failed to submit vote for "${trimmedName}". Please try again.`
         );
@@ -66,13 +72,14 @@ const ImprovedByHuman = ({ isActive }: { isActive: boolean }) => {
     }, 1000);
   };
 
-  const isSubmitDisabled = status === 'loading' || !lastName.trim();
+  const isSubmitDisabled =
+    status === MESSAGE_STATUS.LOADING || !lastName.trim();
 
-  const handleOnchange = (name: string) => {
-    setStatus('idle');
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStatus(MESSAGE_STATUS.IDLE);
     setMessage('');
-    setValidationStatus(VALIDATION_STATUS.VALID);
-    setLastName(name);
+    setValidationStatus(validationStatusObj.valid);
+    setLastName(e.target.value);
   };
 
   return (
@@ -96,16 +103,18 @@ const ImprovedByHuman = ({ isActive }: { isActive: boolean }) => {
               type="text"
               placeholder="Enter contestant's last name"
               value={lastName}
-              onChange={(e) => handleOnchange(e.target.value)}
-              className={`w-full border border-gray-300 rounded pl-3 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${validationStatus !== VALIDATION_STATUS.VALID ? 'border-red-500 border-1' : ''}`}
+              onChange={handleChange}
+              className={`w-full border border-gray-300 rounded pl-3 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${validationStatus !== validationStatusObj.valid ? 'border-red-500 border-1' : ''}`}
               autoFocus
               maxLength={20}
-              aria-invalid={status === 'error' ? 'true' : undefined}
+              aria-invalid={
+                status === MESSAGE_STATUS.ERROR ? 'true' : undefined
+              }
               aria-describedby={
-                status !== 'idle' ? 'status-message' : undefined
+                status !== MESSAGE_STATUS.IDLE ? 'status-message' : undefined
               }
             />
-            {validationStatus !== VALIDATION_STATUS.VALID ? (
+            {validationStatus !== validationStatusObj.valid ? (
               <p
                 className={'absolute -bottom-4 text-[12px]/[16px] text-red-600'}
               >
@@ -117,11 +126,7 @@ const ImprovedByHuman = ({ isActive }: { isActive: boolean }) => {
 
             <img
               className={'absolute w-[20px] h-[20px] right-3 top-3'}
-              src={
-                validationStatus !== VALIDATION_STATUS.VALID
-                  ? './icons/error_icon.svg'
-                  : './icons/person_icon.svg'
-              }
+              src={iconLink}
               alt="person-icon"
             />
           </div>
@@ -133,17 +138,21 @@ const ImprovedByHuman = ({ isActive }: { isActive: boolean }) => {
               isSubmitDisabled ? 'opacity-50 cursor-not-allowed' : ''
             }`}
           >
-            {status === 'loading' ? 'Submitting...' : 'Submit Vote'}
+            {status === MESSAGE_STATUS.LOADING
+              ? 'Submitting...'
+              : 'Submit Vote'}
           </button>
         </form>
 
         <div
-          className={`-z-10 absolute transition-all duration-1000 left-0 top-full w-full px-3 py-2 rounded-lg shadow-2xl ${status !== 'idle' && message ? 'block' : 'none'} ${status === 'success' ? 'bg-green-300' : 'bg-red-300'} ${message ? 'opacity-100 translate-y-4' : 'opacity-0 -translate-y-0'}`}
+          className={`-z-10 absolute transition-all duration-1000 left-0 top-full w-full px-3 py-2 rounded-lg shadow-2xl ${status !== MESSAGE_STATUS.IDLE && message ? 'block' : 'none'} ${status === MESSAGE_STATUS.SUCCESS ? 'bg-green-300' : 'bg-red-300'} ${message ? 'opacity-100 translate-y-4' : 'opacity-0 -translate-y-0'}`}
         >
           <p
             id="status-message"
             className={`text-center font-medium transition-opacity duration-300 ${
-              status === 'success' ? 'text-green-600' : 'text-red-600'
+              status === MESSAGE_STATUS.SUCCESS
+                ? 'text-green-600'
+                : 'text-red-600'
             }`}
           >
             {message}
